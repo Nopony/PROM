@@ -24,6 +24,6 @@ while True:
     plt.show()
     plt.pause(0.2)
     #
-    Process the image
+    #Process the image
     #
     plt.close('all')
