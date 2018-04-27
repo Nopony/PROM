@@ -11,8 +11,6 @@ pygame.camera.init()
 cam = pygame.camera.Camera("/dev/video0",(640,480))
 cam.start()
 
-plt.ion()
-
 while True:
     img = cam.get_image()
     pygame.image.save(img,"filename.jpg")
@@ -23,7 +21,6 @@ while True:
     imgplot = plt.imshow(im)
     plt.show()
     plt.pause(0.2)
-    #
-    #Process the image
-    #
+
     plt.close('all')
+    
