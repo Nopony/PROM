@@ -1,13 +1,31 @@
-#PROM
+import pygame
+import pygame.camera
 import os
 from PIL import Image
 import numpy as np
+import matplotlib.pyplot as plt
 
-name = "name"
-os.system("fswebcam "+name+".jpg")
-#os.system("convert " + name + ".jpg -compress none " +name + ".ppm")
+#Opening an image without libs
+# name = "name"
+# os.system("fswebcam "+name+".jpg")
+# os.system("convert " + name + ".jpg -compress none " +name + ".ppm")
+# os.system("feh " + name + ".ppm")
 
-im = Image.open("name.jpg")
+#Taking a picture
+pygame.camera.init()
+#pygame.camera.list_camera() #Camera detected or not
+cam = pygame.camera.Camera("/dev/video0",(640,480))
+cam.start()
+for i in range(0,5):
+    img = cam.get_image()
+img = cam.get_image()
+pygame.image.save(img,"filename.jpg")
+
+#Opening the image
+im = Image.open("filename.jpg")
 img2arr = np.array(im)
-arr2im = Image.fromarray(im2array)
-arr2im.save('out.bmp')
+
+
+
+imgplot = plt.imshow(im)
+plt.show()
