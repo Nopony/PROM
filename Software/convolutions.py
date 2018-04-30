@@ -41,14 +41,14 @@ def convolve(image, kernal):
 			output[x-1][y-1] = (np.sum(np.multiply(temp,kernal)))
 
 
-	oimgplot = plt.imshow(image)
+	oimgplot = plt.imshow(image,cmap='gray')
 	plt.show()
 
-	cimgplot = plt.imshow(output)
+	cimgplot = plt.imshow(output, cmap='gray')
 	plt.show()
 
 	# cv2.imshow('Original Image',image)
-	# cv2.imshow('Filter applied',output) 
+	# cv2.imshow('Filter applied',output)
 	# cv2.waitKey(0)                 # Waits forever for user to press any key
 	# cv2.destroyAllWindows()        # Closes displayed windows
 
