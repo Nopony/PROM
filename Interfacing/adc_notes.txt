@@ -9,3 +9,5 @@ The first byte of every write is automatically written to the APR.
 
 Setting the 4 LSBs of APR to 0000 also means the next read will access the CRR.
 
+Data is read as a 2-byte word, with 4 MSBs being various flags, the remaining 12 are data values in highbyte:lowbyte order.
+The output is interpolated from 0 - 3 v into 0 - 3852.
