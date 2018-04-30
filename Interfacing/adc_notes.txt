@@ -1,0 +1,11 @@
+Command mode automatically converts when data is available.
+
+APR = Address Pointer Register
+CRR = Conversion Result Register
+
+It is enabled by setting the APR to 0b00010000.
+
+The first byte of every write is automatically written to the APR.
+
+Setting the 4 LSBs of APR to 0000 also means the next read will access the CRR.
+
