@@ -48,11 +48,15 @@ def detect(im):
 	print(height,width)
 	for x in range(0,width):
 	    for y in range(0,height):
-	        pixel = im[y][x]
-	        red = pixel[0]
-	        green = pixel[1]
-	        blue = pixel[2]
-	        if(red < 50 and blue < 50 and green > 30):
+			pixel = im[y][x]
+			red = pixel[0]
+			green = pixel[1]
+			blue = pixel[2]
+			d = distS3(red,green,blue,0,60,45)
+			if(d < 5250):
+			#if(d < 500):
+			#
+	        #if(red < 50 and blue < 50 and green > 30):
 	        	#print('Pos = ', x, y, 'Vals =', im[y][x])
 				#im[y][x] = [244,63,232]
 				found = False
