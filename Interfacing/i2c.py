@@ -13,7 +13,7 @@ THRESHOLD_VALUE = (c['ADC']['THRESHOLD_VOLTAGE'] / c['ADC']['MAX_VOLTAGE']) * c[
 
 btn_state = False
 mic_state = False
-
+ldr_value = None
 
 def setLeds(yellow=False, green=False, red=False):
 	ledVals = 0x00
@@ -46,20 +46,25 @@ def checkButton():
 checkButton()
 
 
-def checkMic():
-	global mic_state
+def applyADCMask(raw_result):
+	return (((raw_result & c['ADC']['READ_MASK']) & c['ADC']['UPPER_BYTE_MASK']) >> 8) | ((raw_result & ~c['ADC']['UPPER_BYTE_MASK']) << 8)
+
+#TODO: Change ADC command to read Vin1 and Vin2, get both outputs
+#TODO: Check if reading 2 bytes twice works or if you need a block read
+def checkAdc():
+	global mic_state, ldr_value
 
 	bus.write_byte(c['I2C']['ADDR_A'], c['ADC']['COMMAND'])
-	result = bus.read_word_data(c['I2C']['ADDR_A'], 0x00)
-	
-	result &= c['ADC']['READ_MASK']
-	result = ( (result & c['ADC']['UPPER_BYTE_MASK']) >> 8 ) | ( (result & ~c['ADC']['UPPER_BYTE_MASK']) << 8 )
+	mic = applyADCMask(bus.read_word_data(c['I2C']['ADDR_A'], 0x00))
+	ldr = applyADCMask(bus.read_word_data(c['I2C']['ADDR_A'], 0x00))
 
-	if result > c['ADC']['THRESHOLD_VALUE']:
+
+	if mic > c['ADC']['THRESHOLD_VALUE']:
 		mic_state = True
+	ldr_value = ldr
 
-	threading.Timer(c['ADC']['POLLING_DELAY'], checkMic).start()
-checkMic()
+	threading.Timer(c['ADC']['POLLING_DELAY'], checkAdc).start()
+checkAdc()
 
 # returns True if mic voltage exceeded threshold since last time getMic was called
 def getMic():
@@ -70,6 +75,9 @@ def getMic():
 		return True
 	return mic_state
 
+# unlike getMic and getButton, this just returns the latest value for the LDR
+def getLdr():
+	return ldr_value
 
 while True:
 	print(getMic())
