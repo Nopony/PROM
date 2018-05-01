@@ -1,15 +1,15 @@
 import smbus #I2C library
 import time
 import threading
-import configparser
+import ConfigParser
 
-c = configparser.ConfigParser('../constants.ini')
-
+c = ConfigParser.ConfigParser()
+c.read('./constants.ini')
 bus = smbus.SMBus(1) #enable I2C bus
 
 
 
-THRESHOLD_VALUE = (c['ADC']['THRESHOLD_VOLTAGE'] / c['ADC']['MAX_VOLTAGE']) * c['ADC']['MAX_VALUE']
+THRESHOLD_VALUE = (float(c.get('ADC','THRESHOLD_VOLTAGE')) / float(c.get('ADC','MAX_VOLTAGE'))) * float(c.get('ADC','MAX_VALUE'))
 
 btn_state = False
 mic_state = False
@@ -20,7 +20,7 @@ def setLeds(yellow=False, green=False, red=False):
 	for idx, colour in enumerate((yellow, green, red)):
 		if(colour):
 			ledVals = ledVals | (0b1 << idx)
-	bus.write_byte(c['I2C']['ADDR_B'], ledVals)
+	bus.write_byte(int(c.get('I2C','ADDR_B'), 16), ledVals)
 
 
 # returns True if button was pressed since the last time getButton was called
@@ -36,34 +36,37 @@ def getButton():
 def checkButton():
 	global btn_state
 
-	byte = bus.read_byte(c['I2C']['ADDR_B'])
-	masked = c['BTN']['MASK'] & byte
+	byte = bus.read_byte(int(c.get('I2C', 'ADDR_B'), 16))
+	masked = int(c.get('BTN','MASK'), 2) & byte
 
 	if masked == 0:
 		btn_state = True
 
-	threading.Timer(c['BTN']['POLLING_DELAY'], checkButton).start()
+	threading.Timer(float(c.get('BTN','POLLING_DELAY')), checkButton).start()
 checkButton()
 
 
 def applyADCMask(raw_result):
-	return (((raw_result & c['ADC']['READ_MASK']) & c['ADC']['UPPER_BYTE_MASK']) >> 8) | ((raw_result & ~c['ADC']['UPPER_BYTE_MASK']) << 8)
+	return (((raw_result & int(c.get('ADC','READ_MASK'), 2)) & int(c.get('ADC','UPPER_BYTE_MASK'), 2)) >> 8) | ((int(c.get('ADC','READ_MASK'), 2) & raw_result & ~int(c.get('ADC','UPPER_BYTE_MASK'), 2)) << 8)
 
-#TODO: Change ADC command to read Vin1 and Vin2, get both outputs
-#TODO: Check if reading 2 bytes twice works or if you need a block read
+
 def checkAdc():
 	global mic_state, ldr_value
 
-	bus.write_byte(c['I2C']['ADDR_A'], c['ADC']['COMMAND'])
-	mic = applyADCMask(bus.read_word_data(c['I2C']['ADDR_A'], 0x00))
-	ldr = applyADCMask(bus.read_word_data(c['I2C']['ADDR_A'], 0x00))
+	bus.write_byte(0x21, 0b00010000)
+	mic = applyADCMask(bus.read_word_data(0x21, 0x00))
 
+	bus.write_byte(0x21, 0b00100000)
+	ldr = applyADCMask(bus.read_word_data(0x21, 0x00))
 
-	if mic > c['ADC']['THRESHOLD_VALUE']:
+	print("MIC: " + str(mic))
+	print("LDR: " + str(ldr))
+
+	if mic > THRESHOLD_VALUE:
 		mic_state = True
 	ldr_value = ldr
 
-	threading.Timer(c['ADC']['POLLING_DELAY'], checkAdc).start()
+	threading.Timer(float(c.get('ADC', 'POLLING_DELAY')), checkAdc).start()
 checkAdc()
 
 # returns True if mic voltage exceeded threshold since last time getMic was called
