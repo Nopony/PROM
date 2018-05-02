@@ -3,6 +3,16 @@ import time
 import threading
 import ConfigParser
 
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BOARD)
+
+GPIO.setup(10, GPIO.OUT)
+
+p = GPIO.PWM(10, 100)
+
+p.start(0)
+p.ChangeDutyCycle(50)
+
 c = ConfigParser.ConfigParser()
 c.read('./constants.ini')
 bus = smbus.SMBus(1) #enable I2C bus
