@@ -1,6 +1,7 @@
 import time
 import os
 import ConfigParser
+import i2c
 c = ConfigParser.ConfigParser()
 c.read('./constants.ini')
 
@@ -48,7 +49,32 @@ class PID:
             self.kd * ((val - self.prevVal) / (t - self.prevTime)) + \
             self.ki * ((val - self.prevVal) * (t - self.prevTime))
 
+	print("p: " + str((self.target - val)))
+	print("d: " + str((val - self.prevVal) / (t - self.prevTime)))
+	print("i: " + str((val - self.prevVal) * (t - self.prevTime)))
+	print("val: " + str(val))
+
+
         self.prevTime = t
         self.prevVal = val
 
         return result
+
+
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BOARD)
+
+GPIO.setup(10, GPIO.OUT)
+
+p = GPIO.PWM(10, 100)
+
+p.start(0)
+p.ChangeDutyCycle(50)
+
+pid = PID(i2c.getLdr, 0.5)
+pid.start()
+while True:
+	time.sleep(0.1)
+	val = pid.next()
+	print(val)
+	p.ChangeDutyCycle(val)

@@ -3,15 +3,7 @@ import time
 import threading
 import ConfigParser
 
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BOARD)
 
-GPIO.setup(10, GPIO.OUT)
-
-p = GPIO.PWM(10, 100)
-
-p.start(0)
-p.ChangeDutyCycle(50)
 
 c = ConfigParser.ConfigParser()
 c.read('./constants.ini')
@@ -22,7 +14,7 @@ I2C_ADDR_B = int(c.get('I2C', 'ADDR_B'), 16)
 
 ADC_COMMAND_CH1 = 0b00010000
 ADC_COMMAND_CH2 = 0b00100000
-ADC_READ_MASK = 0b0000111111111111
+ADC_READ_MASK = 0b1111111100001111
 ADC_UPPER_BYTE_MASK = 0b1111111100000000
 ADC_MAX_VALUE = 4096
 ADC_MAX_VOLTAGE = 3
@@ -64,11 +56,11 @@ def checkButton():
 		btn_state = True
 
 	threading.Timer(BTN_POLLING_DELAY, checkButton).start()
-checkButton()
+#checkButton()
 
 
 def applyADCMask(raw_result):
-	return (((raw_result & ADC_READ_MASK) & ADC_UPPER_BYTE_MASK) >> 8) | ((ADC_READ_MASK & raw_result & ~ADC_UPPER_BYTE_MASK) << 8)
+	return ((raw_result & ADC_READ_MASK & ADC_UPPER_BYTE_MASK) >> 8) | ((ADC_READ_MASK & raw_result & ~ADC_UPPER_BYTE_MASK) << 8)
 
 
 def checkAdc():
@@ -80,8 +72,8 @@ def checkAdc():
 	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH2)
 	ldr = applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
 
-	print("MIC: " + str(mic))
-	print("LDR: " + str(ldr))
+	#print("MIC: " + str(mic))
+	#print("LDR: " + str(ldr))
 
 	if mic > ADC_THRESHOLD_VALUE:
 		mic_state = True
@@ -106,7 +98,7 @@ def interpolateLdr(val):
 def getLdr():
 	return interpolateLdr(ldr_value)
 
-while True:
-	print(getMic())
+#while True:
+	#print(getMic())
 
-	time.sleep(3)
+	#time.sleep(3)
