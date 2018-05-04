@@ -7,7 +7,7 @@ c.read('./constants.ini')
 
 class PID:
     #cb returns momentary sensor value
-    def __init__(self, cb, target):
+    def __init__(self, cb):
         """
         Create pid instance. For coefficients see constants.ini
         :param cb: Function returning new values
@@ -17,8 +17,11 @@ class PID:
         self.kd = float(c.get('PID', 'KD'))
         self.ki = float(c.get('PID', 'KI'))
         self.cb = cb
-        self.target = target
-        self.prev = None
+        self.target = float(c.get('PID', 'TARGET_LUMINOSITY'))
+        self.prevVal = self.cb()
+	self.prevTime = time.time()
+	self.maxOutput = float(c.get('PID', 'MAX_OUTPUT'))
+	self.minOutput = float(c.get('PID', 'MIN_OUTPUT'))
 
     def setTarget(self, target):
         """
@@ -28,7 +31,7 @@ class PID:
         """
         self.target = target
         
-    def start(self):
+    def start(self, initialOutput):
         """
         Initiates PID. Returns no value.
 
@@ -37,6 +40,8 @@ class PID:
         self.prevVal = self.cb()
         self.prevTime = time.time()
 
+	self.output = initialOutput
+
     def next(self):
         """
         Gets next PID value
@@ -44,37 +49,23 @@ class PID:
         :return: Next value
         """
         t, val = time.time(), self.cb()
-        result = \
-            self.kp * (self.target - val) + \
-            self.kd * ((val - self.prevVal) / (t - self.prevTime)) + \
-            self.ki * ((val - self.prevVal) * (t - self.prevTime))
+        change = \
+            self.kp * float(self.target - val) + \
+            self.kd * (float(val - self.prevVal) / float(t - self.prevTime)) + \
+            self.ki * (float(val - self.prevVal) * float(t - self.prevTime))
 
-	print("p: " + str((self.target - val)))
-	print("d: " + str((val - self.prevVal) / (t - self.prevTime)))
-	print("i: " + str((val - self.prevVal) * (t - self.prevTime)))
-	print("val: " + str(val))
-
+	#print("p: " + str((self.target - val)))
+	#print("d: " + str((val - self.prevVal) / (t - self.prevTime)))
+	#print("i: " + str((val - self.prevVal) * (t - self.prevTime)))
+	#print("val: " + str(val))
 
         self.prevTime = t
         self.prevVal = val
+	
+	self.output += change
+	if self.output < self.minOutput:
+		dc = self.minOutput
+	elif self.output > self.maxOutput:
+		dc = self.maxOutput
 
-        return result
-
-
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BOARD)
-
-GPIO.setup(10, GPIO.OUT)
-
-p = GPIO.PWM(10, 100)
-
-p.start(0)
-p.ChangeDutyCycle(50)
-
-pid = PID(i2c.getLdr, 0.5)
-pid.start()
-while True:
-	time.sleep(0.1)
-	val = pid.next()
-	print(val)
-	p.ChangeDutyCycle(val)
+        return self.output

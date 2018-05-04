@@ -16,12 +16,12 @@ ADC_COMMAND_CH1 = 0b00010000
 ADC_COMMAND_CH2 = 0b00100000
 ADC_READ_MASK = 0b1111111100001111
 ADC_UPPER_BYTE_MASK = 0b1111111100000000
-ADC_MAX_VALUE = 4096
+ADC_MAX_VALUE = 4092.0
 ADC_MAX_VOLTAGE = 3
 ADC_THRESHOLD_VALUE = ADC_MAX_VALUE * (float(c.get('ADC','THRESHOLD_VOLTAGE')) / ADC_MAX_VOLTAGE)
 ADC_POLLING_DELAY = float(c.get('ADC', 'POLLING_DELAY'))
 
-BTN_MASK = 0b00001000
+BTN_MASK = 0b10000000
 BTN_POLLING_DELAY = float(c.get('BTN','POLLING_DELAY'))
 
 btn_state = False
@@ -32,7 +32,7 @@ def setLeds(yellow=False, green=False, red=False):
 	ledVals = 0x00
 	for idx, colour in enumerate((yellow, green, red)):
 		if(colour):
-			ledVals = ledVals | (0b1 << idx)
+			ledVals = ledVals | (0b1 << (idx + 4))
 	bus.write_byte(I2C_ADDR_B, ledVals)
 
 
@@ -60,10 +60,12 @@ def checkButton():
 
 
 def applyADCMask(raw_result):
-	return ((raw_result & ADC_READ_MASK & ADC_UPPER_BYTE_MASK) >> 8) | ((ADC_READ_MASK & raw_result & ~ADC_UPPER_BYTE_MASK) << 8)
+	raw_result &= ADC_READ_MASK
+	return ((raw_result & ADC_UPPER_BYTE_MASK) >> 8) | ((raw_result & ~ADC_UPPER_BYTE_MASK) << 8)
 
 
 def checkAdc():
+
 	global mic_state, ldr_value
 
 	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH1)
@@ -72,12 +74,11 @@ def checkAdc():
 	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH2)
 	ldr = applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
 
-	#print("MIC: " + str(mic))
-	#print("LDR: " + str(ldr))
-
 	if mic > ADC_THRESHOLD_VALUE:
 		mic_state = True
 	ldr_value = ldr
+
+	
 
 	threading.Timer(ADC_POLLING_DELAY, checkAdc).start()
 checkAdc()
@@ -92,12 +93,33 @@ def getMic():
 	return mic_state
 
 def interpolateLdr(val):
-	return val / ADC_MAX_VALUE
+	return float(val) / float(ADC_MAX_VALUE) * float(ADC_MAX_VOLTAGE)
 
 # unlike getMic and getButton, this just returns the latest value for the LDR
 def getLdr():
-	return interpolateLdr(ldr_value)
+	return interpolateLdr(ldr_value) 
 
+print('i2c setup complete')
+"""
+while True:
+	setLeds(True, False, False)
+	print('BTN: ' + str(getButton())
+	print('yellow')
+	time.sleep(1)
+	setLeds(False, True, False)
+	print('BTN: ' + str(getButton())
+	print('green')
+	time.sleep(1)
+	setLeds(False, False, False)
+	print('BTN: ' + str(getButton())
+	print('green')
+	time.sleep(1)
+	print('BTN: ' + str(getButton())
+	print('all')
+	setLeds(True, True, True)
+	time.sleep(1)
+"""
+#while True:
 #while True:
 	#print(getMic())
 
