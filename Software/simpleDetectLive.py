@@ -38,7 +38,7 @@ class blob:
 		if (d < 250**2):
 			return True
 		else:
-			#print('Was too big',d)
+			print('Was too big',d)
 			return False
 
 	def __str__(self):

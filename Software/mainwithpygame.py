@@ -1,18 +1,23 @@
 from PIL import Image, ImageDraw
 import numpy as np
+import pygame
+import pygame.camera
 import bugDetect
 import datetime
 import os
 
-while True:
-	#Opening an image without libs
-	name = "name"
-	os.system("fswebcam -r 640x480 --no-banner "+name+".jpg")
-	os.system("convert " + name + ".jpg -compress none " +name + ".ppm")
+#Taking a picture
+pygame.camera.init()
+#pygame.camera.list_camera() #Camera detected or not
+cam = pygame.camera.Camera("/dev/video0",(640,480))
+cam.start()
 
-	image = Image.open(name+".jpg")
-	im2 = np.array(image)
-	blobs = []
+while True:
+	img = cam.get_image()
+	pygame.image.save(img,"filename.jpg")
+	#Displaying the image
+	im = Image.open("filename.jpg")
+	im2 = np.array(im)
 	bugs = bugDetect.detect(im2)
 
 	if not(len(bugs) == 0):
