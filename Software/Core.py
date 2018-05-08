@@ -1,6 +1,7 @@
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy as np
 import bugDetect
+import datetime
 
 #Opening the image
 image = Image.open("2buggos.jpg")
@@ -11,6 +12,10 @@ print(bugs)
 
 if not(len(bugs) == 0):
 	print(len(bugs),'Bugs Detected')
+	print("Image: Cockroach Detected")
+	now = datetime.datetime.now()
+	print now.strftime("%Y-%m-%d %H:%M")
+	draw = ImageDraw.Draw(image)
 	for bug in bugs:
-		# edit img to have rectangles around it
-	#save as a ppm
+		draw.rectangle([bug.minx,bug.miny,bug.maxx,bug.maxy])
+	image.save(now.strftime("%Y-%m-%d %H:%M")+".ppm")
