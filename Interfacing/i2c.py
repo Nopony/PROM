@@ -6,7 +6,7 @@ import ConfigParser
 
 
 c = ConfigParser.ConfigParser()
-c.read('./constants.ini')
+c.read('./constants.py')
 bus = smbus.SMBus(1) #enable I2C bus
 
 I2C_ADDR_A = int(c.get('I2C', 'ADDR_A'), 16)
@@ -22,10 +22,14 @@ ADC_THRESHOLD_VALUE = ADC_MAX_VALUE * (float(c.get('ADC','THRESHOLD_VOLTAGE')) /
 ADC_POLLING_DELAY = float(c.get('ADC', 'POLLING_DELAY'))
 
 BTN_MASK = 0b10000000
-BTN_POLLING_DELAY = float(c.get('BTN','POLLING_DELAY'))
+BTN_POLLING_DELAY = float(c.get('BTN','IDLE_POLLING_DELAY'))
+BTN_DEBOUNCE_DELAY = float(c.get('BTN','DEBOUNCE_POLLING_DELAY'))
+BTN_DEBOUNCE_STABLE_PERIOD = float(c.get('BTN','DEBOUNCE_STABLE_PERIOD'))
 
 btn_state = False
 mic_state = False
+btn_cnt = 0
+max_btn_cnt = float(c.get('BTN','DEBOUNCE_STABLE_PERIOD')) // float(c.get('BTN','DEBOUNCE_POLLING_DELAY'))
 ldr_value = 0
 
 def setLeds(yellow=False, green=False, red=False):
@@ -47,15 +51,36 @@ def getButton():
 
 
 def checkButton():
-	global btn_state
+	global btn_state, btn_cnt
 
 	byte = bus.read_byte(I2C_ADDR_B)
 	masked = BTN_MASK & byte
 
-	if masked == 0:
-		btn_state = True
 
-	threading.Timer(BTN_POLLING_DELAY, checkButton).start()
+	if masked == 0 and btn_state == True: # stays on
+		threading.Timer(BTN_POLLING_DELAY, checkButton).start()
+	elif masked == 0: # False -> True
+		if btn_cnt >= max_btn_cnt:
+			btn_state = True
+			threading.Timer(BTN_POLLING_DELAY, checkButton).start()
+		else:
+			btn_cnt += 1
+			threading.Timer(BTN_DEBOUNCE_DELAY, checkButton).start()
+	elif btn_state: # True -> False
+		if btn_cnt == 0:
+			btn_state = False
+			threading.Timer(BTN_POLLING_DELAY, checkButton).start()
+		else:
+			btn_cnt -= 1
+			threading.Timer(BTN_DEBOUNCE_DELAY, checkButton).start()
+	else: #stays off
+		threading.Timer(BTN_POLLING_DELAY, checkButton).start()
+
+
+	# if masked == 0:
+	#	btn_state = True
+	#
+
 #checkButton()
 
 
@@ -63,16 +88,25 @@ def applyADCMask(raw_result):
 	raw_result &= ADC_READ_MASK
 	return ((raw_result & ADC_UPPER_BYTE_MASK) >> 8) | ((raw_result & ~ADC_UPPER_BYTE_MASK) << 8)
 
+# reads and converts most recent microphone value
+def readMic():
+	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH1)
+	return applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
 
+# reads and converts most recent LDR value
+def readLdr():
+	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH2)
+	return applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
+
+# runs in the background and keeps updating ADC
 def checkAdc():
 
 	global mic_state, ldr_value
 
-	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH1)
-	mic = applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
+	mic = readMic()
+	ldr = readLdr()
 
-	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH2)
-	ldr = applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
+
 
 	if mic > ADC_THRESHOLD_VALUE:
 		mic_state = True
