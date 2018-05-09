@@ -6,6 +6,7 @@ import time
 import RPi.GPIO as GPIO
 import log
 import threading
+import leds
 
 
 c = ConfigParser.ConfigParser()
@@ -54,6 +55,11 @@ def btnLoop():
 	if I2C.getButton():
 		toggleButton()
 	t = threading.Timer(0.5, btnLoop)
+	t.daemon(True)
+
+def micLedLoop():
+	leds.turn(I2C.readMic())
+	t = threading.Timer(0.1, micLedLoop)
 	t.daemon(True)
 
 def micLoop():
@@ -114,7 +120,7 @@ try:
 		bugs = detect.detectBug(filename)
 		if bugs > 0:
 			log.append('cam')
-			print("Image: Cockroach Detected")
+			print(log.getTimestamp() + "Image: Cockroach Detected")
 		#TODO: Write bug amount to 7-segment
 
 except KeyboardInterrupt:
