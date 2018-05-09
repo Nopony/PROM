@@ -8,7 +8,6 @@ image = Image.open("3bugs.jpg")
 im2 = np.array(image)
 blobs = []
 bugs = bugDetect.detect(im2)
-print(bugs)
 
 if not(len(bugs) == 0):
 	print(len(bugs),'Bugs Detected')

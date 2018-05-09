@@ -35,7 +35,7 @@ class blob:
 		cx = (self.minx + self.maxx)/2
 		cy = (self.miny + self.minx)/2
 		d = distS2(cx,cy, x, y)
-		if (d < 250**2):
+		if (d < 25**2):
 			return True
 		else:
 			return False
