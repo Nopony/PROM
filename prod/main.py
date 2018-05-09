@@ -14,11 +14,6 @@ c.read('./constants.py')
 pid = PID.PID(I2C.getLdr)
 
 #setup operating mode
-btn_mode = int(c.get("BTN", "MODE"))
-MODE_POLL = 0
-MODE_SOFT_DBNC = 1
-MODE_SOFT_HARD_DBNC = 2
-MODE_INT = 3
 
 servo_mode = False
 SERVO_MODE_MANUAL = False
@@ -35,14 +30,6 @@ SERVO_PWM.start(0)
 
 GPIO_SERVO_POWER = int(c.get("GPIO", "SERVO_POWER"))
 GPIO.setup(GPIO_SERVO_POWER, GPIO.OUT)
-
-GPIO_BUTTON_INT = int(c.get("GPIO", "BUTTON_INT"))
-GPIO.setup(GPIO_BUTTON_INT, GPIO.IN) #pi pin number here. REMEMBER TO ADD THE PULL UP 10K RESISTOR YOU TWAT
-# if btn_mode == MODE_INT:
-# 	GPIO.add_event_detect(GPIO_BUTTON_INT, GPIO.FALLING,
-#                       callback=eButtonPressed, bouncetime=int(c.get("BTN", "INTERRUPT_DEBOUNCE_PERIOD")))
-# 	#TODO: revise unpushed version from userspace, possibly done in I2C module
-
 
 GPIO_BUZZER_PWM = int(c.get("GPIO", "BUZZER_PWM"))
 BUZZER_FREQ = int(c.get("GPIO", "BUZZER_FREQUENCY"))
@@ -65,8 +52,7 @@ def pidLoop():
 
 def btnLoop():
 	if I2C.getButton():
-		pulseBuzzer()
-		setServoControl(not servo_mode)
+		toggleButton()
 	t = threading.Timer(0.5, btnLoop)
 	t.daemon(True)
 
@@ -77,6 +63,9 @@ def micLoop():
 	t = threading.Timer(0.5, micLoop)
 	t.daemon(True)
 
+def toggleButton():
+	pulseBuzzer()
+	setServoControl(not servo_mode)
 
 def pulseBuzzer():
 	startBuzzer()
@@ -88,6 +77,14 @@ def startBuzzer():
 def stopBuzzer():
 	BUZZER_PWM.ChangeDutyCycle(0)
 #TODO: Add control loop for transient mic level
+
+#setup button interrupt if in interrupt mode
+btn_mode = int(c.get("BTN", "MODE"))
+MODE_INT = 3
+
+if btn_mode == MODE_INT:
+	I2C.setInterrupt(toggleButton)
+
 
 pidLoop()
 btnLoop()

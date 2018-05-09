@@ -35,6 +35,12 @@ btn_cnt = 0
 max_btn_cnt = float(c.get('BTN','DEBOUNCE_STABLE_PERIOD')) // float(c.get('BTN','DEBOUNCE_POLLING_DELAY'))
 ldr_value = 0
 
+#check if I2C B connected
+try:
+	bus.write_byte(I2C_ADDR_B, 0)
+except IOError:
+	raise 'I2C at addr ' + str(I2C_ADDR_B) + ' is not connected.'
+
 #configure I2C expander (I2C B)
 bus.write_byte_data(I2C_ADDR_B, 0x03, BTN_MASK) # configuration register 3. Logical 1 is INPUT
 
@@ -106,7 +112,7 @@ def setInterrupt(callback):
 def checkInterruptType():
 	if (bus.read_byte(I2C_ADDR_B) & BTN_MASK) == 0 :
 		interruptCallback()
-	
+
 if BTN_MODE == 0:
 	checkButtonNoDebounce()
 elif BTN_MODE == 1 or BTN_MODE == 2:
