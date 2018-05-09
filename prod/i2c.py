@@ -14,8 +14,10 @@ bus = smbus.SMBus(1)  # enable I2C bus
 I2C_ADDR_A = int(c.get('I2C', 'ADDR_A'), 16)
 I2C_ADDR_B = int(c.get('I2C', 'ADDR_B'), 16)
 
+
+ADC_ENABLE_PEAK = bool(c.get("ADC", "ENABLE_PEAK_DETECTOR"))
 ADC_COMMAND_CH1 = 0b00010000
-ADC_COMMAND_CH2 = 0b00100000
+ADC_COMMAND_CH2 = 0b01000000 if ADC_ENABLE_PEAK else 0b00100000 # use channel 3 (with peak detection) or 2
 ADC_READ_MASK = 0b1111111100001111
 ADC_UPPER_BYTE_MASK = 0b1111111100000000
 ADC_MAX_VALUE = 4092.0
@@ -80,7 +82,7 @@ def countdown():
 	
 	for i in range(3):
 		updateI2C()
-		timer.sleep(1)
+		time.sleep(1)
 		sev_seg -= i
 	sev_seg_enable = False
 	updateI2C()
@@ -194,13 +196,13 @@ def applyADCMask(raw_result):
 # reads and converts most recent microphone value
 def readMic():
 	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH1)
-	return applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
+	return interpolateVoltage(applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00)))
 
 
 # reads and converts most recent LDR value
 def readLdr():
 	bus.write_byte(I2C_ADDR_A, ADC_COMMAND_CH2)
-	return applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00))
+	return interpolateVoltage(applyADCMask(bus.read_word_data(I2C_ADDR_A, 0x00)))
 
 
 # runs in the background and keeps updating ADC
@@ -230,10 +232,10 @@ def getMic():
 	return mic_state
 
 
-def interpolateLdr(val):
+def interpolateVoltage(val):
 	return float(val) / float(ADC_MAX_VALUE) * float(ADC_MAX_VOLTAGE)
 
 
 # unlike getMic and getButton, this just returns the latest value for the LDR
 def getLdr():
-	return interpolateLdr(ldr_value)
+	return interpolateVoltage(ldr_value)

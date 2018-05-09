@@ -81,7 +81,6 @@ def btnLoop():
 
 def micLedLoop():
 	leds.turn(I2C.readMic())
-
 	newThread(0.1, micLedLoop)
 
 def micLoop():
@@ -91,8 +90,11 @@ def micLoop():
 	newThread(0.5, micLoop)
 
 def toggleButton():
+	global servo_mode
+	servo_mode = not servo_mode
+	setServoControl(servo_mode)
 	pulseBuzzer()
-	setServoControl(not servo_mode)
+
 
 def pulseBuzzer():
 	startBuzzer()
@@ -102,7 +104,6 @@ def startBuzzer():
 	BUZZER_PWM.ChangeDutyCycle(50)
 def stopBuzzer():
 	BUZZER_PWM.ChangeDutyCycle(0)
-#TODO: Add control loop for transient mic level
 
 if ENABLE_COUNTDOWN:
 	I2C.countdown()
@@ -114,11 +115,11 @@ MODE_INT = 3
 
 if btn_mode == MODE_INT:
 	I2C.setInterrupt(toggleButton)
+else:
+	btnLoop()
 
-
-#pidLoop()
-btnLoop()
-#micLoop()
+pidLoop()
+micLoop()
 
 
 try:
