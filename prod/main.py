@@ -19,7 +19,7 @@ pid = PID.PID(I2C.getLdr)
 servo_mode = False
 SERVO_MODE_MANUAL = False
 SERVO_MODE_PID = True
-
+ENABLE_COUNTDOWN = bool(c.get("GENERAL", "ENABLE_COUNTDOWN"))
 
 #setup GPIO pins
 GPIO.setmode(GPIO.BCM)
@@ -104,6 +104,10 @@ def stopBuzzer():
 	BUZZER_PWM.ChangeDutyCycle(0)
 #TODO: Add control loop for transient mic level
 
+if ENABLE_COUNTDOWN:
+	I2C.countdown()
+
+
 #setup button interrupt if in interrupt mode
 btn_mode = int(c.get("BTN", "MODE"))
 MODE_INT = 3
@@ -127,6 +131,7 @@ try:
 		I2C.setLed(I2C.YELLOW, False)
 
 		bugs = detect.detectBug(filename)
+		I2C.setBugCount(bugs)
 		if bugs > 0:
 			log.append('cam')
 			print("[" + log.getTimestamp() + "] Image: Cockroach Detected")

@@ -30,7 +30,7 @@ MODE_SOFT_HARD_DBNC = 2
 MODE_INT = 3
 
 BTN_INT_PIN = int(c.get('GPIO', 'BUTTON_INT'), 10)
-BTN_MASK = 0b00000010 if BTN_MODE == 2 else 0b10000000
+BTN_MASK = 0b00001000 if BTN_MODE == 2 else 0b10000000
 BTN_POLLING_DELAY = float(c.get('BTN', 'IDLE_POLLING_DELAY'))
 BTN_DEBOUNCE_DELAY = float(c.get('BTN', 'DEBOUNCE_POLLING_DELAY'))
 BTN_DEBOUNCE_STABLE_PERIOD = float(c.get('BTN', 'DEBOUNCE_STABLE_PERIOD'))
@@ -41,7 +41,8 @@ btn_cnt = 0
 max_btn_cnt = float(c.get('BTN', 'DEBOUNCE_STABLE_PERIOD')) // float(c.get('BTN', 'DEBOUNCE_POLLING_DELAY'))
 ldr_value = 0
 leds = [False, False, False]
-
+sev_seg = 3
+sev_seg_enable = True
 YELLOW = 0
 GREEN = 1
 RED = 2
@@ -53,24 +54,51 @@ except IOError:
 	raise IOError('I2C at addr ' + str(I2C_ADDR_B) + ' is not connected.')
 
 # configure I2C expander (I2C B)
-#bus.write_byte_data(I2C_ADDR_B, 0x03, BTN_MASK)  # configuration register 3. Logical 1 is INPUT
+bus.write_byte_data(I2C_ADDR_B, 0x03, BTN_MASK)  # configuration register 3. Logical 1 is INPUT
 
 
 
 def setLed(colour, value):
 	global leds
 	leds[colour] = value
-	showLeds()
+	updateI2C()
 
-def showLeds():
+def updateI2C():
 	global leds
 	ledVals,regOut = 0x01, 0x01
 	print(leds)
 	for idx, colour in enumerate(leds):
 		if colour:
 			ledVals |= (0b1 << (idx + 4))
+	ledVals |= (sev_seg)
+	ledVals |= (int(sev_seg_enable) << 2)
 	bus.write_byte(I2C_ADDR_B, ledVals)
-	#bus.write_byte_data(I2C_ADDR_B, regOut, ledVals)
+	#bus.write_byte_data(I2C_ADDR_B, regOut, ledVals) TODO: test further
+
+def countdown():
+	global sev_seg_enable, sev_seg
+	
+	for i in range(3):
+		updateI2C()
+		timer.sleep(1)
+		sev_seg -= i
+	sev_seg_enable = False
+	updateI2C()
+
+def clearBugCount():
+	global sev_seg_enable
+	sev_seg_enable = False
+	updateI2C()
+
+def setBugCount(bugCount):
+	global sev_seg, sev_seg_enable
+	
+	sev_seg_enable = True
+	sev_seg = max(min(bugCount, 3), 0)
+	
+	updateI2C()
+	threading.Timer(1, clearBugCount).start()
+	
 
 
 # returns True if button was pressed since the last time getButton was called
