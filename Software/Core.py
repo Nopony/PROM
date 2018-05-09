@@ -4,7 +4,7 @@ import bugDetect
 import datetime
 
 #Opening the image
-image = Image.open("2buggos.jpg")
+image = Image.open("3bugs.jpg")
 im2 = np.array(image)
 blobs = []
 bugs = bugDetect.detect(im2)
