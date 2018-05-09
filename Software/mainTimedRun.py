@@ -7,7 +7,9 @@ import time
 
 start = time.time()
 
-image = Image.open("betterLight.jpg")
+name = "testing1"
+os.system("fswebcam -r 176x144 -S 4 --no-banner "+name+".ppm")
+image = Image.open("testing1.ppm")
 im2 = np.array(image)
 blobs = []
 bugPos = bugDetectFast.detect(im2)
