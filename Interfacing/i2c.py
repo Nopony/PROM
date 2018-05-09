@@ -2,8 +2,9 @@ import smbus #I2C library
 import time
 import threading
 import ConfigParser
-
-
+import RPi.GPIO as GPIO
+GPIO.cleanup()
+GPIO.setmode(GPIO.BCM)
 
 c = ConfigParser.ConfigParser()
 c.read('./constants.py')
@@ -21,7 +22,9 @@ ADC_MAX_VOLTAGE = 3
 ADC_THRESHOLD_VALUE = ADC_MAX_VALUE * (float(c.get('ADC','THRESHOLD_VOLTAGE')) / ADC_MAX_VOLTAGE)
 ADC_POLLING_DELAY = float(c.get('ADC', 'POLLING_DELAY'))
 
-BTN_MASK = 0b10000000
+BTN_MODE = int(c.get('BTN', 'MODE'), 10)
+BTN_INT_PIN = int(c.get('BTN', 'INT_PIN'), 10)
+BTN_MASK = 0b00000010 if BTN_MODE == 2 else 0b10000000
 BTN_POLLING_DELAY = float(c.get('BTN','IDLE_POLLING_DELAY'))
 BTN_DEBOUNCE_DELAY = float(c.get('BTN','DEBOUNCE_POLLING_DELAY'))
 BTN_DEBOUNCE_STABLE_PERIOD = float(c.get('BTN','DEBOUNCE_STABLE_PERIOD'))
@@ -32,12 +35,15 @@ btn_cnt = 0
 max_btn_cnt = float(c.get('BTN','DEBOUNCE_STABLE_PERIOD')) // float(c.get('BTN','DEBOUNCE_POLLING_DELAY'))
 ldr_value = 0
 
+#configure I2C expander (I2C B)
+bus.write_byte_data(I2C_ADDR_B, 0x03, BTN_MASK) # configuration register 3. Logical 1 is INPUT
+
 def setLeds(yellow=False, green=False, red=False):
-	ledVals = 0x00
+	ledVals, regOut = 0x01
 	for idx, colour in enumerate((yellow, green, red)):
-		if(colour):
+		if colour
 			ledVals = ledVals | (0b1 << (idx + 4))
-	bus.write_byte(I2C_ADDR_B, ledVals)
+	bus.write_byte_data(I2C_ADDR_B, regOut, ledVals)
 
 
 # returns True if button was pressed since the last time getButton was called
@@ -48,8 +54,16 @@ def getButton():
 		return True
 	else:
 		return btn_state
+#just polling, mode 0
+def checkButtonNoDebounce():
+	global btn_state
+	byte = bus.read_byte(I2C_ADDR_B)
+	masked = BTN_MASK & byte
 
-
+	if masked == 0:
+		btn_state = True
+	threading.Timer(BTN_POLLING_DELAY, checkButtonNoDebounce).start()
+#debounce, modes 1 and 2
 def checkButton():
 	global btn_state, btn_cnt
 
@@ -81,6 +95,24 @@ def checkButton():
 	#	btn_state = True
 	#
 
+#interrupt-based, mode 3
+interruptCallback = ""
+def setInterrupt(callback):
+	if BTN_MODE != 3:
+		print('Interrupt cannot be set in mode ' + str(BTN_MODE))
+	interruptCallback = callback
+	GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP) #pi pin number here. REMEMBER TO ADD THE PULL UP 10K RESISTOR YOU TWAT
+	GPIO.add_event_detect(15, GPIO.FALLING, callback=checkInterruptType, bouncetime=1000)
+def checkInterruptType():
+	if (bus.read_byte(I2C_ADDR_B) & BTN_MASK) == 0 :
+		interruptCallback()
+	
+if BTN_MODE == 0:
+	checkButtonNoDebounce()
+elif BTN_MODE == 1 or BTN_MODE == 2:
+	checkButton()
+else:
+	print('Running in mode 3 (interrupt). Set the button press-triggered callback with `setInterrupt(cb)`)
 #checkButton()
 
 
