@@ -23,7 +23,7 @@ SERVO_MODE_PID = True
 
 #setup GPIO pins
 GPIO.setmode(GPIO.BCM)
-
+GPIO.setwarnings(False)
 GPIO_SERVO_PWM = int(c.get("GPIO", "SERVO_PWM")) #servo pwm for PID control
 GPIO.setup(GPIO_SERVO_PWM, GPIO.OUT)
 SERVO_PWM = GPIO.PWM(GPIO_SERVO_PWM, 50)
@@ -44,30 +44,51 @@ BUZZER_PWM.start(0)
 PID_POLLING_DELAY = float(c.get("PID", "POLLING_DELAY"))
 
 
+#helper function for servo pins
+def setServoControl(mode):
+	global servo_mode
+	servo_mode = mode
+
+	if servo_mode == SERVO_MODE_MANUAL:
+		GPIO.output(GPIO_SERVO_POWER, GPIO.LOW)
+	else:
+		GPIO.output(GPIO_SERVO_POWER, GPIO.HIGH)
+		pidLoop()
+
+	I2C.setLed(I2C.GREEN, mode)
+	I2C.setLed(I2C.RED, not mode)
+
+
+
+def newThread(delay, fun):
+	t = threading.Timer(delay, fun)
+	t.setDaemon(True)
+	t.start()
+
 def pidLoop():
 	if servo_mode == SERVO_MODE_MANUAL:
 		return
 	SERVO_PWM.ChangeDutyCycle(pid.next())
-	t = threading.Timer(PID_POLLING_DELAY, pidLoop)
-	t.daemon(True)
+
+	newThread(PID_POLLING_DELAY, pidLoop)
 
 def btnLoop():
 	if I2C.getButton():
+		print('Button pressed!')
 		toggleButton()
-	t = threading.Timer(0.5, btnLoop)
-	t.daemon(True)
+
+	newThread(0.5, btnLoop)
 
 def micLedLoop():
 	leds.turn(I2C.readMic())
-	t = threading.Timer(0.1, micLedLoop)
-	t.daemon(True)
+
+	newThread(0.1, micLedLoop)
 
 def micLoop():
 	if I2C.getMic():
 		log.append('mic')
 		print('Microphone: Cockroach Detected')
-	t = threading.Timer(0.5, micLoop)
-	t.daemon(True)
+	newThread(0.5, micLoop)
 
 def toggleButton():
 	pulseBuzzer()
@@ -75,8 +96,7 @@ def toggleButton():
 
 def pulseBuzzer():
 	startBuzzer()
-	t = threading.Timer(1, stopBuzzer)
-	t.daemon(True)
+	newThread(1, stopBuzzer)
 
 def startBuzzer():
 	BUZZER_PWM.ChangeDutyCycle(50)
@@ -92,27 +112,16 @@ if btn_mode == MODE_INT:
 	I2C.setInterrupt(toggleButton)
 
 
-pidLoop()
+#pidLoop()
 btnLoop()
-micLoop()
+#micLoop()
 
-#helper function for servo pins
-def setServoControl(mode):
-	global servo_mode
-	servo_mode = mode
 
-	if servo_mode == SERVO_MODE_MANUAL:
-		GPIO.output(GPIO_SERVO_POWER, GPIO.LOW)
-	else:
-		GPIO.output(GPIO_SERVO_POWER, GPIO.HIGH)
-		pidLoop()
-
-	I2C.setLed(I2C.GREEN, mode)
-	I2C.setLed(I2C.RED, not mode)
 try:
 
 	while True: # main loop
 		#image bug detection
+		print(threading.active_count())
 		I2C.setLed(I2C.YELLOW, True)
 		filename = detect.saveImage()
 		I2C.setLed(I2C.YELLOW, False)
@@ -120,7 +129,7 @@ try:
 		bugs = detect.detectBug(filename)
 		if bugs > 0:
 			log.append('cam')
-			print(log.getTimestamp() + "Image: Cockroach Detected")
+			print("[" + log.getTimestamp() + "] Image: Cockroach Detected")
 		#TODO: Write bug amount to 7-segment
 
 except KeyboardInterrupt:
