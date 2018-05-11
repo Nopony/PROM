@@ -20,7 +20,7 @@ def detect(im):
 	maxy = 0
 
 	(height,width) = im.shape[0:2]
-	print(height,width)
+	#print(height,width)
 	x = 0
 	while(x < width):
 		for y in range(0,height,2):

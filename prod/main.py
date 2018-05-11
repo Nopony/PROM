@@ -16,27 +16,33 @@ pid = PID.PID(I2C.getLdr)
 
 #setup operating mode
 
-servo_mode = False
+servo_mode = True
 SERVO_MODE_MANUAL = False
 SERVO_MODE_PID = True
-ENABLE_COUNTDOWN = bool(c.get("GENERAL", "ENABLE_COUNTDOWN"))
+ENABLE_COUNTDOWN = bool(int(c.get("GENERAL", "ENABLE_COUNTDOWN")))
+
+if ENABLE_COUNTDOWN:
+	I2C.countdown()
+
 
 #setup GPIO pins
 GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
+
 GPIO_SERVO_PWM = int(c.get("GPIO", "SERVO_PWM")) #servo pwm for PID control
+print("pwm on pin: " + str(GPIO_SERVO_PWM))
 GPIO.setup(GPIO_SERVO_PWM, GPIO.OUT)
 SERVO_PWM = GPIO.PWM(GPIO_SERVO_PWM, 50)
 SERVO_PWM.start(0)
+SERVO_PWM.ChangeDutyCycle(5)
 
 GPIO_SERVO_POWER = int(c.get("GPIO", "SERVO_POWER"))
 GPIO.setup(GPIO_SERVO_POWER, GPIO.OUT)
+GPIO.output(GPIO_SERVO_POWER, GPIO.HIGH)
 
 GPIO_BUZZER_PWM = int(c.get("GPIO", "BUZZER_PWM"))
 BUZZER_FREQ = int(c.get("GPIO", "BUZZER_FREQUENCY"))
 GPIO.setup(GPIO_BUZZER_PWM, GPIO.OUT)
 BUZZER_PWM = GPIO.PWM(GPIO_BUZZER_PWM, BUZZER_FREQ)
-BUZZER_PWM.start(0)
 
 
 
@@ -45,18 +51,16 @@ PID_POLLING_DELAY = float(c.get("PID", "POLLING_DELAY"))
 
 
 #helper function for servo pins
-def setServoControl(mode):
-	global servo_mode
-	servo_mode = mode
-
+def updateServoControl():
+	
 	if servo_mode == SERVO_MODE_MANUAL:
 		GPIO.output(GPIO_SERVO_POWER, GPIO.LOW)
 	else:
 		GPIO.output(GPIO_SERVO_POWER, GPIO.HIGH)
 		pidLoop()
 
-	I2C.setLed(I2C.GREEN, mode)
-	I2C.setLed(I2C.RED, not mode)
+	I2C.setLed(I2C.GREEN, servo_mode)
+	I2C.setLed(I2C.RED, not servo_mode)
 
 
 
@@ -81,52 +85,72 @@ def btnLoop():
 
 def micLedLoop():
 	leds.turn(I2C.readMic())
-	newThread(0.1, micLedLoop)
+	newThread(0.01, micLedLoop)
 
 def micLoop():
 	if I2C.getMic():
 		log.append('mic')
-		print('Microphone: Cockroach Detected')
+		print('[' + log.getTimestamp() + '] Microphone: Cockroach Detected')
+	
 	newThread(0.5, micLoop)
 
 def toggleButton():
 	global servo_mode
 	servo_mode = not servo_mode
-	setServoControl(servo_mode)
+	updateServoControl()
 	pulseBuzzer()
 
 
 def pulseBuzzer():
+	global SERVO_PWM
+
+	BUZZER_PWM.start(0)
+
 	startBuzzer()
 	newThread(1, stopBuzzer)
 
+
 def startBuzzer():
+	#print('STARTING BUZZ')
 	BUZZER_PWM.ChangeDutyCycle(50)
 def stopBuzzer():
+	#print('STOPPING BUZZ')
 	BUZZER_PWM.ChangeDutyCycle(0)
+	SERVO_PWM.start(0)
+	SERVO_PWM.ChangeDutyCycle(pid.next())
 
-if ENABLE_COUNTDOWN:
-	I2C.countdown()
+	
+
+
 
 
 #setup button interrupt if in interrupt mode
 btn_mode = int(c.get("BTN", "MODE"))
 MODE_INT = 3
 
+print(btn_mode)
+
+
+I2C.setLed(I2C.GREEN, True) # default mode is automatic
+
+#setup the threads
 if btn_mode == MODE_INT:
+	print('Enabling button interrupt')
 	I2C.setInterrupt(toggleButton)
 else:
+	print('Enabling button looping')
+
 	btnLoop()
 
 pidLoop()
 micLoop()
-
+micLedLoop()
 
 try:
 
 	while True: # main loop
 		#image bug detection
-		print(threading.active_count())
+		#print("threads: " + str(threading.active_count()))
 		I2C.setLed(I2C.YELLOW, True)
 		filename = detect.saveImage()
 		I2C.setLed(I2C.YELLOW, False)

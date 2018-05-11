@@ -8,7 +8,7 @@ import subprocess
 def saveImage(device='/dev/video0', filename='name.ppm'):
 	#Opening an image without libs
 	#os.system("fswebcam -r 640x480 --no-banner "+name+".jpg") #160x120
-	subprocess.check_output("fswebcam -r 176x144 -S 4 --no-banner -q -d " + device + " " + filename)
+	subprocess.check_output("fswebcam -r 176x144 -S 4 --no-banner -q -d " + device + " " + filename, shell=True)
 
 	return filename
 	#fswebcam -d /dev/video0 -r 640x480 -S 4 --no-banner /home/pi/Animation/$FILENAME
