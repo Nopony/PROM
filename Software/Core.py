@@ -16,5 +16,5 @@ if not(len(bugs) == 0):
 	print now.strftime("%Y-%m-%d %H:%M")
 	draw = ImageDraw.Draw(image)
 	for bug in bugs:
-		draw.rectangle([bug.minx,bug.miny,bug.maxx,bug.maxy])
+		draw.rectangle([bug.minx,bug.miny,bug.maxx,bug.maxy],fill=None,outline=(255,0,0))
 	image.save(now.strftime("%Y-%m-%d %H:%M")+".ppm")

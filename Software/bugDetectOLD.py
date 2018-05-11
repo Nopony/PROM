@@ -32,10 +32,10 @@ class blob:
 		self.maxy = max(self.maxy, y)
 
 	def isNear(self,x,y):
-		cx = max(min(x,self.maxx),self.minx)
-		cy = max(min(y,self.maxy),self.miny)
+		cx = (self.minx + self.maxx)/2
+		cy = (self.miny + self.minx)/2
 		d = distS2(cx,cy, x, y)
-		if (d < 10**2):
+		if (d < 25**2):
 			return True
 		else:
 			return False
