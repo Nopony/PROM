@@ -70,5 +70,5 @@ class PID:
 			self.output = self.minOutput
 		elif self.output > self.maxOutput:
 			self.output = self.maxOutput
-
+		#print('PID: ' + str(self.output))
 		return self.output
