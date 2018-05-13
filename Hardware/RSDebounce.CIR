@@ -1,0 +1,9 @@
+* C:\Users\strad\PROM\Hardware\RSDebounce.asc
+V1 N001 0 PULSE(3.3 0 0 0.1ms 0.1ms 2ms 0.2ms 10)
+R1 N001 N002 330
+R2 N003 N002 470
+A1 N003 0 0 0 0 N004 0 0 SCHMITT
+C1 N003 0 1µF
+.tran 20ms
+.backanno
+.end
