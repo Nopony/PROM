@@ -47,7 +47,7 @@ class blob:
 def detect(im):
 	blobs = []
 	(height,width) = im.shape[0:2]
-	# print(height,width)
+	print(height,width)
 	for x in range(0,width):
 	    for y in range(0,height):
 			pixel = im[y][x]
@@ -90,5 +90,4 @@ def detect(im):
 					if(i.miny < j.maxy and i.miny > j.miny):
 						#print("j is inside i")
 						blobs.remove(i)
-
 	return blobs
