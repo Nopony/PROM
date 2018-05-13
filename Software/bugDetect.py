@@ -35,7 +35,7 @@ class blob:
 		cx = max(min(x,self.maxx),self.minx)
 		cy = max(min(y,self.maxy),self.miny)
 		d = distS2(cx,cy, x, y)
-		if (d < 10**2):
+		if (d < 8**2): #If the point is in d should return false. 
 			return True
 		else:
 			return False
@@ -65,4 +65,29 @@ def detect(im):
 				if(not found):
 					newBlob = blob(x,y)
 					blobs.append(newBlob)
+
+
+	for i in blobs:
+		if(i.miny == i.maxy):
+			blobs.remove(i)
+		if(i.minx == i.maxx):
+			blobs.remove(i)
+
+
+	#Checking if a blob is inside another blob 
+	for i in blobs:
+		for j in blobs:
+			if (i == j):
+				break
+			else:
+				#If i.minx is in js x range
+				if(j.minx < i.maxx and j.minx > i.minx):
+					if(j.miny < i.maxy and j.miny > i.miny):
+						#print("i is inside j")
+						blobs.remove(j)
+
+				if(i.minx < j.maxx and i.minx > j.minx):
+					if(i.miny < j.maxy and i.miny > j.miny):
+						#print("j is inside i")
+						blobs.remove(i)
 	return blobs

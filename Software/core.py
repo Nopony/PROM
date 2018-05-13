@@ -8,11 +8,11 @@ while True:
 	#Opening an image without libs
 	name = "name"
 	#os.system("fswebcam -r 640x480 --no-banner "+name+".jpg") #160x120
-	os.system("fswebcam -r 176x144 -S 4 --no-banner "+name+".ppm")
+	os.system("fswebcam -d /dev/video1 -r 176x144 -S 4 --no-banner "+name+".jpg")
 	#fswebcam -d /dev/video0 -r 640x480 -S 4 --no-banner /home/pi/Animation/$FILENAME
 
 	#Opening the image
-	image = Image.open(name+".ppm")
+	image = Image.open(name+".jpg")
 	im2 = np.array(image)
 	blobs = []
 	bugs = bugDetect.detect(im2)
@@ -26,3 +26,6 @@ while True:
 		for bug in bugs:
 			draw.rectangle([bug.minx,bug.miny,bug.maxx,bug.maxy],fill=None,outline=(255,0,0))
 		image.save(now.strftime("%Y-%m-%d %H:%M")+".ppm")
+	else: 
+		print('No bugs')
+		print(im2)
