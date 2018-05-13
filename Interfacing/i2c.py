@@ -23,7 +23,13 @@ ADC_THRESHOLD_VALUE = ADC_MAX_VALUE * (float(c.get('ADC','THRESHOLD_VOLTAGE')) /
 ADC_POLLING_DELAY = float(c.get('ADC', 'POLLING_DELAY'))
 
 BTN_MODE = int(c.get('BTN', 'MODE'), 10)
-BTN_INT_PIN = int(c.get('BTN', 'INT_PIN'), 10)
+MODE_POLL = 0
+MODE_SOFT_DBNC = 1
+MODE_SOFT_HARD_DBNC = 2
+MODE_INT = 3
+
+
+BTN_INT_PIN = int(c.get('GPIO', 'BUTTON_INT'), 10)
 BTN_MASK = 0b00000010 if BTN_MODE == 2 else 0b10000000
 BTN_POLLING_DELAY = float(c.get('BTN','IDLE_POLLING_DELAY'))
 BTN_DEBOUNCE_DELAY = float(c.get('BTN','DEBOUNCE_POLLING_DELAY'))
@@ -102,13 +108,14 @@ def checkButton():
 	#
 
 #interrupt-based, mode 3
-interruptCallback = ""
+interruptCallback = lambda: print('Unset interrupt callback. This is v. bad.')
 def setInterrupt(callback):
+	global interruptCallback
 	if BTN_MODE != 3:
 		print('Interrupt cannot be set in mode ' + str(BTN_MODE))
 	interruptCallback = callback
-	GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP) #pi pin number here. REMEMBER TO ADD THE PULL UP 10K RESISTOR YOU TWAT
-	GPIO.add_event_detect(15, GPIO.FALLING, callback=checkInterruptType, bouncetime=1000)
+	GPIO.setup(BTN_INT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP) #pi pin number here. REMEMBER TO ADD THE PULL UP 10K RESISTOR YOU TWAT
+	GPIO.add_event_detect(BTN_INT_PIN, GPIO.FALLING, callback=checkInterruptType, bouncetime=1000)
 def checkInterruptType():
 	if (bus.read_byte(I2C_ADDR_B) & BTN_MASK) == 0 :
 		interruptCallback()
@@ -118,7 +125,8 @@ if BTN_MODE == 0:
 elif BTN_MODE == 1 or BTN_MODE == 2:
 	checkButton()
 else:
-	print('Running in mode 3 (interrupt). Set the button press-triggered callback with `setInterrupt(cb)`)
+	print('Running in mode 3 (interrupt). '
+	      'Set the button press-triggered callback with `setInterrupt(cb)`')
 #checkButton()
 
 
@@ -172,27 +180,3 @@ def getLdr():
 	return interpolateLdr(ldr_value) 
 
 print('i2c setup complete')
-"""
-while True:
-	setLeds(True, False, False)
-	print('BTN: ' + str(getButton())
-	print('yellow')
-	time.sleep(1)
-	setLeds(False, True, False)
-	print('BTN: ' + str(getButton())
-	print('green')
-	time.sleep(1)
-	setLeds(False, False, False)
-	print('BTN: ' + str(getButton())
-	print('green')
-	time.sleep(1)
-	print('BTN: ' + str(getButton())
-	print('all')
-	setLeds(True, True, True)
-	time.sleep(1)
-"""
-#while True:
-#while True:
-	#print(getMic())
-
-	#time.sleep(3)

@@ -20,9 +20,12 @@ servo_mode = True
 SERVO_MODE_MANUAL = False
 SERVO_MODE_PID = True
 ENABLE_COUNTDOWN = bool(int(c.get("GENERAL", "ENABLE_COUNTDOWN")))
-
 if ENABLE_COUNTDOWN:
 	I2C.countdown()
+
+ENABLE_MULTIPLE_BUGS = bool(int(c.get("GENERAL", "MULTIPLE_BUGS")))
+
+
 
 
 #setup GPIO pins
@@ -44,6 +47,9 @@ BUZZER_FREQ = int(c.get("GPIO", "BUZZER_FREQUENCY"))
 GPIO.setup(GPIO_BUZZER_PWM, GPIO.OUT)
 BUZZER_PWM = GPIO.PWM(GPIO_BUZZER_PWM, BUZZER_FREQ)
 
+
+#setup LED thresholds
+led_thresholds = list(map(lambda t: float(c.get(*t)), [('LED', 'T' + str(i)) for i in range(8)]))
 
 
 #setup threads
@@ -84,7 +90,7 @@ def btnLoop():
 	newThread(0.5, btnLoop)
 
 def micLedLoop():
-	leds.turn(I2C.readMic())
+	leds.turn(I2C.readMic(), led_thresholds)
 	newThread(0.01, micLedLoop)
 
 def micLoop():
@@ -154,13 +160,17 @@ try:
 		I2C.setLed(I2C.YELLOW, True)
 		filename = detect.saveImage()
 		I2C.setLed(I2C.YELLOW, False)
-
-		bugs = detect.detectBug(filename)
+		bugs = 0
+		if ENABLE_MULTIPLE_BUGS:
+			bugs = detect.detectMultiple(filename)
+		else:
+			bugs = detect.detectBug(filename)
 		I2C.setBugCount(bugs)
 		if bugs > 0:
 			log.append('cam')
 			print("[" + log.getTimestamp() + "] Image: Cockroach Detected")
-		#TODO: Write bug amount to 7-segment
+			if ENABLE_MULTIPLE_BUGS:
+				print('Number of bugs: ' + str(bugs))
 
 except KeyboardInterrupt:
 	print('Termination signal received, quitting...')
